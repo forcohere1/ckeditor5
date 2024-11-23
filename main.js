@@ -35,10 +35,10 @@ const editorConfig = {
 };
 
 let activeTab = null;
-let tabCounter = 0;
 const localStoragePrefix = 'editorTab_';
 const tabsStateKey = 'editorTabsState'; // Key to store tab metadata
 const editorTabs = document.getElementById('editor-tabs');
+let usedTabNumbers = new Set(); // Tracks the numbers of all active tabs
 
 // Function to save the tabs state
 function saveTabsState() {
@@ -55,15 +55,21 @@ function saveTabsState() {
 
 // Function to create a new tab
 function createNewTab(editor, name = null, restore = false) {
-    tabCounter++;
-    const tabId = `tab_${tabCounter}`;
+    // Find the smallest unused tab number
+    let tabNumber = 1;
+    while (usedTabNumbers.has(tabNumber)) {
+        tabNumber++;
+    }
+    usedTabNumbers.add(tabNumber);
+
+    const tabId = `tab_${tabNumber}`;
     const newTab = document.createElement('div');
     newTab.className = 'tab';
     newTab.setAttribute('data-tab-id', tabId);
 
     // Tab name and close button
     newTab.innerHTML = `
-        <span class="tab-name">${name || `Tab ${tabCounter}`}</span>
+        <span class="tab-name">${name || `Tab ${tabNumber}`}</span>
         <button class="close-tab">x</button>
     `;
 
@@ -106,25 +112,40 @@ function switchToTab(tabId, editor) {
 // Function to close a tab
 function closeTab(tabId, editor) {
     const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
-    if (tabElement) {
-        tabElement.remove();
-        localStorage.removeItem(`${localStoragePrefix}${tabId}`);
+    
+    if (!tabElement) return;
 
-        // If the closed tab is active, switch to the first available tab
-        if (activeTab === tabId) {
-            const remainingTabs = document.querySelectorAll('.tab');
-            if (remainingTabs.length > 0) {
-                const firstTabId = remainingTabs[0].getAttribute('data-tab-id');
-                switchToTab(firstTabId, editor);
-            } else {
-                // No tabs left, clear editor
-                activeTab = null;
-                editor.setData("<p></p>");
-            }
-        }
+    const tabNumber = parseInt(tabId.split('_')[1], 10); // Extract tab number
 
-        saveTabsState(); // Save the state after closing a tab
+    // Prevent closing if it's the last remaining tab
+    const remainingTabs = document.querySelectorAll('.tab');
+    if (remainingTabs.length <= 1) {
+        alert('At least one tab must remain.');
+        return;
     }
+
+    // Ask for user confirmation
+    if (!confirm('Are you sure you want to close this tab?')) {
+        return;
+    }
+
+    tabElement.remove();
+    usedTabNumbers.delete(tabNumber); // Free up the tab number
+    localStorage.removeItem(`${localStoragePrefix}${tabId}`);
+
+    // If the closed tab is active, switch to the first available tab
+    if (activeTab === tabId) {
+        if (remainingTabs.length > 1) {
+            const firstTabId = remainingTabs[0].getAttribute('data-tab-id');
+            switchToTab(firstTabId, editor);
+        } else {
+            // No tabs left, clear editor
+            activeTab = null;
+            editor.setData("<p></p>");
+        }
+    }
+
+    saveTabsState(); // Save the state after closing a tab
 }
 
 // Restore tabs from saved state
@@ -132,7 +153,11 @@ function restoreTabs(editor) {
     const savedState = localStorage.getItem(tabsStateKey);
     if (savedState) {
         const { tabs, activeTab: savedActiveTab } = JSON.parse(savedState);
-        tabs.forEach(tab => createNewTab(editor, tab.name, true));
+        tabs.forEach(tab => {
+            const tabNumber = parseInt(tab.id.split('_')[1], 10);
+            usedTabNumbers.add(tabNumber); // Mark restored tab number as used
+            createNewTab(editor, tab.name, true);
+        });
         if (savedActiveTab) {
             switchToTab(savedActiveTab, editor);
         }
