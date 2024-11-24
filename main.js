@@ -407,11 +407,16 @@ function cleanupOrphanedTabs() {
 }
 
 function saveTabsState() {
-    const tabs = Array.from(document.querySelectorAll('.tab')).map(tab => ({
-        id: tab.getAttribute('data-tab-id'),
-        name: tab.querySelector('.tab-name').textContent,
-        content: localStorage.getItem(`${localStoragePrefix}${tab.getAttribute('data-tab-id')}`) // Save content reference
-    }));
+    const tabs = Array.from(document.querySelectorAll('.tab')).map(tab => {
+        const tabId = tab.getAttribute('data-tab-id');
+        return {
+            id: tabId,
+            name: tab.querySelector('.tab-name').textContent,
+            // Don't include content reference here to avoid saving closed tab content
+            content: tabId === activeTab ? document.getElementById('editor').innerHTML : 
+                    localStorage.getItem(`${localStoragePrefix}${tabId}`)
+        };
+    });
     
     const state = {
         tabs,
@@ -419,6 +424,7 @@ function saveTabsState() {
     };
     
     localStorage.setItem(tabsStateKey, JSON.stringify(state));
+    console.log('Saved tabs state:', state);
 }
 
 function createNewTab(editor, name = null, tabId = null, content = null) {
@@ -465,13 +471,13 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
 }
 
 function switchToTab(tabId, editor) {
-    if (activeTab === tabId) return;
+    console.log(`Switching to tab ${tabId} from ${activeTab}`);
 
-    // Save current tab content before switching
-    if (activeTab) {
+    // Don't save content if we're switching from a tab that's being closed
+    if (activeTab && document.querySelector(`[data-tab-id="${activeTab}"]`)) {
         const currentContent = document.getElementById('editor').innerHTML;
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
-        saveTabsState(); // Save state after content update
+        console.log(`Saved content for previous tab ${activeTab}`);
     }
 
     const tabContent = localStorage.getItem(`${localStoragePrefix}${tabId}`);
@@ -493,9 +499,11 @@ function switchToTab(tabId, editor) {
 
 function closeTab(tabId, editor) {
     const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
-    if (!tabElement) return;
+    if (!tabElement) {
+        console.log(`Tab element ${tabId} not found`);
+        return;
+    }
 
-    const tabNumber = parseInt(tabId.split('_')[1], 10);
     const remainingTabs = document.querySelectorAll('.tab');
     
     if (remainingTabs.length <= 1) {
@@ -507,27 +515,45 @@ function closeTab(tabId, editor) {
         return;
     }
 
-    // Save current content before closing
-    if (activeTab === tabId) {
-        const currentContent = document.getElementById('editor').innerHTML;
-        localStorage.setItem(`${localStoragePrefix}${tabId}`, currentContent);
-    }
+    console.log(`Closing tab ${tabId}`);
 
-    tabElement.remove();
-    usedTabNumbers.delete(tabNumber);
+    // First, remove from localStorage before any other operations
     localStorage.removeItem(`${localStoragePrefix}${tabId}`);
+    console.log(`Removed localStorage for ${localStoragePrefix}${tabId}`);
 
+    // Then update the tabs state
+    const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
+    state.tabs = state.tabs.filter(tab => tab.id !== tabId);
+    
+    // If this was the active tab, clear it from the state
+    if (state.activeTab === tabId) {
+        state.activeTab = null;
+    }
+    
+    localStorage.setItem(tabsStateKey, JSON.stringify(state));
+    console.log('Updated tabs state:', state);
+
+    // Remove the tab number from used numbers set
+    const tabNumber = parseInt(tabId.split('_')[1], 10);
+    usedTabNumbers.delete(tabNumber);
+
+    // Remove the DOM element
+    tabElement.remove();
+
+    // Handle active tab switching
     if (activeTab === tabId) {
         const nextTab = document.querySelector('.tab');
         if (nextTab) {
-            switchToTab(nextTab.getAttribute('data-tab-id'), editor);
+            const nextTabId = nextTab.getAttribute('data-tab-id');
+            console.log(`Switching to next tab ${nextTabId}`);
+            // Don't save the current tab's content since we're closing it
+            activeTab = null; // Clear active tab before switching
+            switchToTab(nextTabId, editor);
         } else {
             activeTab = null;
             editor.setData('');
         }
     }
-
-    saveTabsState();
 }
 
 function restoreTabs(editor) {
