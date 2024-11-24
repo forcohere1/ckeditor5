@@ -424,7 +424,6 @@ function saveTabsState() {
     };
     
     localStorage.setItem(tabsStateKey, JSON.stringify(state));
-    console.log('Saved tabs state:', state);
 }
 
 function createNewTab(editor, name = null, tabId = null, content = null) {
@@ -471,13 +470,10 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
 }
 
 function switchToTab(tabId, editor) {
-    console.log(`Switching to tab ${tabId} from ${activeTab}`);
 
-    // Don't save content if we're switching from a tab that's being closed
     if (activeTab && document.querySelector(`[data-tab-id="${activeTab}"]`)) {
         const currentContent = document.getElementById('editor').innerHTML;
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
-        console.log(`Saved content for previous tab ${activeTab}`);
     }
 
     const tabContent = localStorage.getItem(`${localStoragePrefix}${tabId}`);
@@ -500,7 +496,6 @@ function switchToTab(tabId, editor) {
 function closeTab(tabId, editor) {
     const tabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
     if (!tabElement) {
-        console.log(`Tab element ${tabId} not found`);
         return;
     }
 
@@ -515,11 +510,9 @@ function closeTab(tabId, editor) {
         return;
     }
 
-    console.log(`Closing tab ${tabId}`);
 
     // First, remove from localStorage before any other operations
     localStorage.removeItem(`${localStoragePrefix}${tabId}`);
-    console.log(`Removed localStorage for ${localStoragePrefix}${tabId}`);
 
     // Then update the tabs state
     const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
@@ -531,7 +524,6 @@ function closeTab(tabId, editor) {
     }
     
     localStorage.setItem(tabsStateKey, JSON.stringify(state));
-    console.log('Updated tabs state:', state);
 
     // Remove the tab number from used numbers set
     const tabNumber = parseInt(tabId.split('_')[1], 10);
@@ -545,7 +537,6 @@ function closeTab(tabId, editor) {
         const nextTab = document.querySelector('.tab');
         if (nextTab) {
             const nextTabId = nextTab.getAttribute('data-tab-id');
-            console.log(`Switching to next tab ${nextTabId}`);
             // Don't save the current tab's content since we're closing it
             activeTab = null; // Clear active tab before switching
             switchToTab(nextTabId, editor);
