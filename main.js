@@ -1,44 +1,380 @@
 import {
-    DecoupledEditor,
-    AccessibilityHelp,
-    Autosave,
-    BlockToolbar,
-    Essentials,
-    Paragraph,
-    SelectAll,
-    SpecialCharacters,
-    Undo
+	DecoupledEditor,
+	AccessibilityHelp,
+	Alignment,
+	Autoformat,
+	AutoImage,
+	AutoLink,
+	Autosave,
+	BlockQuote,
+	BlockToolbar,
+	Bold,
+	Code,
+	CodeBlock,
+	Essentials,
+	FindAndReplace,
+	FontBackgroundColor,
+	FontColor,
+	FontFamily,
+	FontSize,
+	GeneralHtmlSupport,
+	Heading,
+	Highlight,
+	HorizontalLine,
+	HtmlComment,
+	HtmlEmbed,
+	ImageBlock,
+	ImageCaption,
+	ImageInline,
+	ImageInsert,
+	ImageInsertViaUrl,
+	ImageResize,
+	ImageStyle,
+	ImageTextAlternative,
+	ImageToolbar,
+	ImageUpload,
+	Indent,
+	IndentBlock,
+	Italic,
+	Link,
+	LinkImage,
+	List,
+	ListProperties,
+	Markdown,
+	MediaEmbed,
+	Mention,
+	Minimap,
+	PageBreak,
+	Paragraph,
+	PasteFromMarkdownExperimental,
+	PasteFromOffice,
+	RemoveFormat,
+	SelectAll,
+	ShowBlocks,
+	SimpleUploadAdapter,
+	SpecialCharacters,
+	SpecialCharactersArrows,
+	SpecialCharactersCurrency,
+	SpecialCharactersEssentials,
+	SpecialCharactersLatin,
+	SpecialCharactersMathematical,
+	SpecialCharactersText,
+	Strikethrough,
+	Style,
+	Subscript,
+	Superscript,
+	Table,
+	TableCaption,
+	TableCellProperties,
+	TableColumnResize,
+	TableProperties,
+	TableToolbar,
+	TextPartLanguage,
+	TextTransformation,
+	Title,
+	TodoList,
+	Underline,
+	Undo
 } from 'ckeditor5';
 
 const editorConfig = {
-    toolbar: {
-        // Expanded toolbar items to support more HTML elements
-        items: [
-            'undo', 
-            'redo',
-            '|',
-        ],
-        shouldNotGroupWhenFull: false
-    },
-    plugins: [
-        AccessibilityHelp,
-        Autosave,
-        BlockToolbar,
-        Essentials,
-        Paragraph,
-        SelectAll,
-        SpecialCharacters,
-        Undo
-    ],
-    blockToolbar: [],
-    menuBar: {
-        isVisible: true
-    },
-    placeholder: 'Type or paste your content here!',
-    initialData: '<table style="font-size: 12px;" class="ck-table-resized"><colgroup><col style="width:5.69%;"><col style="width:5.69%;"><col style="width:23.53%;"><col style="width:53.71%;"><col style="width:5.69%;"><col style="width:5.69%;"></colgroup><thead><tr><th>Sr.</th><th>V.T</th><th>Granth</th><th>ShastraPath</th><th>Pub. Rem</th><th>In. Rem</th></tr></thead><tbody><tr><td>1</td><td>स्व.</td><td></td><td></td><td></td><td></td></tr></tbody></table>',
+	toolbar: {
+		items: [
+			'undo',
+			'redo',
+			'|',
+			'showBlocks',
+			'|',
+			// 'heading',
+			'style',
+			'|',
+			'fontSize',
+			'fontFamily',
+			'fontColor',
+			'fontBackgroundColor',
+			'|',
+			'bold',
+			'italic',
+			'underline',
+			'|',
+			'link',
+			'insertImage',
+			'insertTable',
+			'highlight',
+			'blockQuote',
+			'codeBlock',
+			'|',
+			'alignment',
+			'|',
+			'bulletedList',
+			'numberedList',
+			'todoList',
+			'outdent',
+			'indent'
+		],
+		shouldNotGroupWhenFull: false
+	},
+	plugins: [
+		AccessibilityHelp,
+		Alignment,
+		Autoformat,
+		AutoImage,
+		AutoLink,
+		Autosave,
+		BlockQuote,
+		BlockToolbar,
+		Bold,
+		Code,
+		CodeBlock,
+		Essentials,
+		FindAndReplace,
+		FontBackgroundColor,
+		FontColor,
+		FontFamily,
+		FontSize,
+		GeneralHtmlSupport,
+		// Heading,
+		Highlight,
+		HorizontalLine,
+		HtmlComment,
+		HtmlEmbed,
+		ImageBlock,
+		ImageCaption,
+		ImageInline,
+		ImageInsert,
+		ImageInsertViaUrl,
+		ImageResize,
+		ImageStyle,
+		ImageTextAlternative,
+		ImageToolbar,
+		ImageUpload,
+		Indent,
+		IndentBlock,
+		Italic,
+		Link,
+		LinkImage,
+		List,
+		ListProperties,
+		Markdown,
+		MediaEmbed,
+		Mention,
+		Minimap,
+		PageBreak,
+		Paragraph,
+		PasteFromMarkdownExperimental,
+		PasteFromOffice,
+		RemoveFormat,
+		SelectAll,
+		ShowBlocks,
+		SimpleUploadAdapter,
+		SpecialCharacters,
+		SpecialCharactersArrows,
+		SpecialCharactersCurrency,
+		SpecialCharactersEssentials,
+		SpecialCharactersLatin,
+		SpecialCharactersMathematical,
+		SpecialCharactersText,
+		Strikethrough,
+		Style,
+		Subscript,
+		Superscript,
+		Table,
+		TableCaption,
+		TableCellProperties,
+		TableColumnResize,
+		TableProperties,
+		TableToolbar,
+		TextPartLanguage,
+		TextTransformation,
+		// Title,
+		TodoList,
+		Underline,
+		Undo
+	],
+	blockToolbar: [
+		'fontSize',
+		'fontColor',
+		'fontBackgroundColor',
+		'|',
+		'bold',
+		'italic',
+		'|',
+		'link',
+		'insertImage',
+		'insertTable',
+		'|',
+		'bulletedList',
+		'numberedList',
+		'outdent',
+		'indent'
+	],
+	fontFamily: {
+		supportAllValues: true
+	},
+	fontSize: {
+		options: [10, 12, 14, 'default', 18, 20, 22],
+		supportAllValues: true
+	},
+	heading: {
+		options: [
+			{
+				model: 'paragraph',
+				title: 'Paragraph',
+				class: 'ck-heading_paragraph'
+			},
+			{
+				model: 'heading1',
+				view: 'h1',
+				title: 'Heading 1',
+				class: 'ck-heading_heading1'
+			},
+			{
+				model: 'heading2',
+				view: 'h2',
+				title: 'Heading 2',
+				class: 'ck-heading_heading2'
+			},
+			{
+				model: 'heading3',
+				view: 'h3',
+				title: 'Heading 3',
+				class: 'ck-heading_heading3'
+			},
+			{
+				model: 'heading4',
+				view: 'h4',
+				title: 'Heading 4',
+				class: 'ck-heading_heading4'
+			},
+			{
+				model: 'heading5',
+				view: 'h5',
+				title: 'Heading 5',
+				class: 'ck-heading_heading5'
+			},
+			{
+				model: 'heading6',
+				view: 'h6',
+				title: 'Heading 6',
+				class: 'ck-heading_heading6'
+			}
+		]
+	},
+	htmlSupport: {
+		allow: [
+			{
+				name: /^.*$/,
+				styles: true,
+				attributes: true,
+				classes: true
+			}
+		]
+	},
+	image: {
+		toolbar: [
+			'toggleImageCaption',
+			'imageTextAlternative',
+			'|',
+			'imageStyle:inline',
+			'imageStyle:wrapText',
+			'imageStyle:breakText',
+			'|',
+			'resizeImage'
+		]
+	},
+	link: {
+		addTargetToExternalLinks: true,
+		defaultProtocol: 'https://',
+		decorators: {
+			toggleDownloadable: {
+				mode: 'manual',
+				label: 'Downloadable',
+				attributes: {
+					download: 'file'
+				}
+			}
+		}
+	},
+	list: {
+		properties: {
+			styles: true,
+			startIndex: true,
+			reversed: true
+		}
+	},
+	mention: {
+		feeds: [
+			{
+				marker: '@',
+				feed: [
+					/* See: https://ckeditor.com/docs/ckeditor5/latest/features/mentions.html */
+				]
+			}
+		]
+	},
+	menuBar: {
+		isVisible: true
+	},
+	minimap: {
+		container: document.querySelector('#editor-minimap'),
+		extraClasses: 'editor-container_include-minimap ck-minimap__iframe-content'
+	},
+	// placeholder: 'Type or paste your content here!',
+	style: {
+		definitions: [
+			{
+				name: 'Article category',
+				element: 'h3',
+				classes: ['category']
+			},
+			{
+				name: 'Title',
+				element: 'h2',
+				classes: ['document-title']
+			},
+			{
+				name: 'Subtitle',
+				element: 'h3',
+				classes: ['document-subtitle']
+			},
+			{
+				name: 'Info box',
+				element: 'p',
+				classes: ['info-box']
+			},
+			{
+				name: 'Side quote',
+				element: 'blockquote',
+				classes: ['side-quote']
+			},
+			{
+				name: 'Marker',
+				element: 'span',
+				classes: ['marker']
+			},
+			{
+				name: 'Spoiler',
+				element: 'span',
+				classes: ['spoiler']
+			},
+			{
+				name: 'Code (dark)',
+				element: 'pre',
+				classes: ['fancy-code', 'fancy-code-dark']
+			},
+			{
+				name: 'Code (bright)',
+				element: 'pre',
+				classes: ['fancy-code', 'fancy-code-bright']
+			}
+		]
+	},
+	table: {
+		contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells', 'tableProperties', 'tableCellProperties']
+	},
     autosave: {
         save(editor) {
-            const editorData = editor.getData();
+            const editorData = document.getElementById('editor').innerHTML;
             if (activeTab) {
                 localStorage.setItem(`${localStoragePrefix}${activeTab}`, editorData);
                 console.log(`Content saved for ${activeTab}`);
@@ -114,11 +450,14 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
 
     editorTabs.insertBefore(newTab, document.getElementById('add-tab'));
 
+    // Default table content
+    const defaultContent = `<table style="font-size: 12px;" class="ck-table-resized"><colgroup><col style="width:5.69%;"><col style="width:5.69%;"><col style="width:23.53%;"><col style="width:53.71%;"><col style="width:5.69%;"><col style="width:5.69%;"></colgroup><thead><tr><th>Sr.</th><th>V.T</th><th>Granth</th><th>ShastraPath</th><th>Pub. Rem</th><th>In. Rem</th></tr></thead><tbody><tr><td>1</td><td>स्व.</td><td></td><td></td><td></td><td></td></tr></tbody></table>`;
+
     // Initialize content
     if (content !== null) {
         localStorage.setItem(`${localStoragePrefix}${tabId}`, content);
     } else if (!localStorage.getItem(`${localStoragePrefix}${tabId}`)) {
-        localStorage.setItem(`${localStoragePrefix}${tabId}`, '');
+        localStorage.setItem(`${localStoragePrefix}${tabId}`, defaultContent);
     }
 
     switchToTab(tabId, editor);
@@ -130,7 +469,7 @@ function switchToTab(tabId, editor) {
 
     // Save current tab content before switching
     if (activeTab) {
-        const currentContent = editor.getData();
+        const currentContent = document.getElementById('editor').innerHTML;
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
         saveTabsState(); // Save state after content update
     }
@@ -170,7 +509,7 @@ function closeTab(tabId, editor) {
 
     // Save current content before closing
     if (activeTab === tabId) {
-        const currentContent = editor.getData();
+        const currentContent = document.getElementById('editor').innerHTML;
         localStorage.setItem(`${localStoragePrefix}${tabId}`, currentContent);
     }
 
@@ -238,7 +577,7 @@ DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(edi
     // Add window beforeunload handler to save content
     window.addEventListener('beforeunload', () => {
         if (activeTab) {
-            const currentContent = editor.getData();
+            const currentContent = document.getElementById('editor').innerHTML;
             localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
             saveTabsState();
         }
