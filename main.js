@@ -45,7 +45,6 @@ const editorConfig = {
             }
             return Promise.resolve();
         },
-        waitingTime: 1000 // Add auto-save delay
     }
 };
 
