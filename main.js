@@ -44,7 +44,8 @@ const editorConfig = {
                 console.log(`Content saved for ${activeTab}`);
             }
             return Promise.resolve();
-        }
+        },
+        waitingTime: 1000 // Add auto-save delay
     }
 };
 
@@ -54,18 +55,16 @@ const tabsStateKey = 'editorTabsState';
 const editorTabs = document.getElementById('editor-tabs');
 let usedTabNumbers = new Set();
 
-// Define empty content with a more semantic default
-const getEmptyContent = () => {
-    return ''; // Let CKEditor handle the initial structure
-};
-
 function cleanupOrphanedTabs() {
+    const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
+    const validTabIds = new Set(state.tabs.map(tab => tab.id));
+
+    // Get all localStorage keys
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith(localStoragePrefix)) {
+        if (key && key.startsWith(localStoragePrefix)) {
             const tabId = key.replace(localStoragePrefix, '');
-            const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
-            if (!state.tabs.some(tab => tab.id === tabId)) {
+            if (!validTabIds.has(tabId)) {
                 localStorage.removeItem(key);
             }
         }
@@ -75,17 +74,19 @@ function cleanupOrphanedTabs() {
 function saveTabsState() {
     const tabs = Array.from(document.querySelectorAll('.tab')).map(tab => ({
         id: tab.getAttribute('data-tab-id'),
-        name: tab.querySelector('.tab-name').textContent
+        name: tab.querySelector('.tab-name').textContent,
+        content: localStorage.getItem(`${localStoragePrefix}${tab.getAttribute('data-tab-id')}`) // Save content reference
     }));
+    
     const state = {
         tabs,
         activeTab
     };
+    
     localStorage.setItem(tabsStateKey, JSON.stringify(state));
-    cleanupOrphanedTabs();
 }
 
-function createNewTab(editor, name = null, tabId = null) {
+function createNewTab(editor, name = null, tabId = null, content = null) {
     if (!tabId) {
         let tabNumber = 1;
         while (usedTabNumbers.has(tabNumber)) {
@@ -114,9 +115,11 @@ function createNewTab(editor, name = null, tabId = null) {
 
     editorTabs.insertBefore(newTab, document.getElementById('add-tab'));
 
-    // Initialize empty content only if it doesn't exist
-    if (!localStorage.getItem(`${localStoragePrefix}${tabId}`)) {
-        localStorage.setItem(`${localStoragePrefix}${tabId}`, getEmptyContent());
+    // Initialize content
+    if (content !== null) {
+        localStorage.setItem(`${localStoragePrefix}${tabId}`, content);
+    } else if (!localStorage.getItem(`${localStoragePrefix}${tabId}`)) {
+        localStorage.setItem(`${localStoragePrefix}${tabId}`, '');
     }
 
     switchToTab(tabId, editor);
@@ -126,18 +129,15 @@ function createNewTab(editor, name = null, tabId = null) {
 function switchToTab(tabId, editor) {
     if (activeTab === tabId) return;
 
+    // Save current tab content before switching
     if (activeTab) {
         const currentContent = editor.getData();
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
+        saveTabsState(); // Save state after content update
     }
 
     const tabContent = localStorage.getItem(`${localStoragePrefix}${tabId}`);
-    // Only set data if there's actual content
-    if (tabContent !== null) {
-        editor.setData(tabContent);
-    } else {
-        editor.setData(getEmptyContent());
-    }
+    editor.setData(tabContent || '');
     
     activeTab = tabId;
 
@@ -169,17 +169,23 @@ function closeTab(tabId, editor) {
         return;
     }
 
+    // Save current content before closing
+    if (activeTab === tabId) {
+        const currentContent = editor.getData();
+        localStorage.setItem(`${localStoragePrefix}${tabId}`, currentContent);
+    }
+
     tabElement.remove();
     usedTabNumbers.delete(tabNumber);
     localStorage.removeItem(`${localStoragePrefix}${tabId}`);
 
     if (activeTab === tabId) {
-        const nextTab = remainingTabs[0];
-        if (nextTab && nextTab !== tabElement) {
+        const nextTab = document.querySelector('.tab');
+        if (nextTab) {
             switchToTab(nextTab.getAttribute('data-tab-id'), editor);
         } else {
             activeTab = null;
-            editor.setData(getEmptyContent());
+            editor.setData('');
         }
     }
 
@@ -187,6 +193,7 @@ function closeTab(tabId, editor) {
 }
 
 function restoreTabs(editor) {
+    // Clear existing tabs
     Array.from(document.querySelectorAll('.tab')).forEach(tab => tab.remove());
     usedTabNumbers.clear();
 
@@ -194,10 +201,12 @@ function restoreTabs(editor) {
     if (savedState) {
         const { tabs, activeTab: savedActiveTab } = JSON.parse(savedState);
         
+        // Restore all tabs with their content
         tabs.forEach(tab => {
-            createNewTab(editor, tab.name, tab.id);
+            createNewTab(editor, tab.name, tab.id, tab.content);
         });
 
+        // Switch to the previously active tab
         if (savedActiveTab && document.querySelector(`[data-tab-id="${savedActiveTab}"]`)) {
             switchToTab(savedActiveTab, editor);
         } else if (tabs.length > 0) {
@@ -208,6 +217,7 @@ function restoreTabs(editor) {
     }
 }
 
+// Initialize editor
 DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(editor => {
     document.querySelector('#editor-toolbar').appendChild(editor.ui.view.toolbar.element);
     document.querySelector('#editor-menu-bar').appendChild(editor.ui.view.menuBarView.element);
@@ -223,6 +233,15 @@ DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(edi
             } else {
                 switchToTab(tabId, editor);
             }
+        }
+    });
+
+    // Add window beforeunload handler to save content
+    window.addEventListener('beforeunload', () => {
+        if (activeTab) {
+            const currentContent = editor.getData();
+            localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
+            saveTabsState();
         }
     });
 
