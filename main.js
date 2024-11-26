@@ -390,17 +390,6 @@ const tabsStateKey = 'editorTabsState';
 const editorTabs = document.getElementById('editor-tabs');
 let usedTabNumbers = new Set();
 
-const autosave = {
-    save(editor) {
-        const editorData = document.getElementById('editor').innerHTML;
-        if (activeTab) {
-            localStorage.setItem(`${localStoragePrefix}${activeTab}`, editorData);
-            console.log(`Content saved for ${activeTab}`);
-        }
-        return Promise.resolve();
-    }
-};
-
 function cleanupOrphanedTabs() {
     const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
     const validTabIds = new Set(state.tabs.map(tab => tab.id));
