@@ -390,6 +390,17 @@ const tabsStateKey = 'editorTabsState';
 const editorTabs = document.getElementById('editor-tabs');
 let usedTabNumbers = new Set();
 
+const autosave = {
+    save(editor) {
+        const editorData = document.getElementById('editor').innerHTML;
+        if (activeTab) {
+            localStorage.setItem(`${localStoragePrefix}${activeTab}`, editorData);
+            console.log(`Content saved for ${activeTab}`);
+        }
+        return Promise.resolve();
+    }
+};
+
 function cleanupOrphanedTabs() {
     const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
     const validTabIds = new Set(state.tabs.map(tab => tab.id));
@@ -411,10 +422,8 @@ function saveTabsState() {
         const tabId = tab.getAttribute('data-tab-id');
         return {
             id: tabId,
-            name: tab.querySelector('.tab-name').textContent,
-            // Don't include content reference here to avoid saving closed tab content
-            content: tabId === activeTab ? document.getElementById('editor').innerHTML : 
-                    localStorage.getItem(`${localStoragePrefix}${tabId}`)
+            name: tab.querySelector('.tab-name').textContent
+            // Removed content field to reduce redundancy
         };
     });
     
@@ -456,7 +465,7 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
     editorTabs.insertBefore(newTab, document.getElementById('add-tab'));
 
     // Default table content
-    const defaultContent = `<table style="font-size: 12px;" class="ck-table-resized"><colgroup><col style="width:5.69%;"><col style="width:5.69%;"><col style="width:23.53%;"><col style="width:53.71%;"><col style="width:5.69%;"><col style="width:5.69%;"></colgroup><thead><tr><th>Sr.</th><th>V.T</th><th>Granth</th><th>ShastraPath</th><th>Pub. Rem</th><th>In. Rem</th></tr></thead><tbody><tr><td>1</td><td>स्व.</td><td></td><td></td><td></td><td></td></tr></tbody></table>`;
+    const defaultContent = `<table style="font-size: 12px;" class="ck-table-resized"><colgroup><col style="width:5.69%;"><col style="width:5.69%;"><col style="width:23.53%;"><col style="width:53.71%;"><col style="width:5.69%;"><col style="width:5.69%;"></colgroup><thead><tr><th>Sr.</th><th>V.T</th><th>Granth</th><th>ShastraPath</th><th>Pub. Rem</th><th>In. Rem</th></tr></thead><tbody><tr><td>1</td><td>स्व.</td><td>&#8203;</td><td>&#8203;</td><td>&#8203;</td><td>&#8203;</td></tr></tbody></table>`;
 
     // Initialize content
     if (content !== null) {
@@ -470,7 +479,6 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
 }
 
 function switchToTab(tabId, editor) {
-
     if (activeTab && document.querySelector(`[data-tab-id="${activeTab}"]`)) {
         const currentContent = document.getElementById('editor').innerHTML;
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
@@ -509,7 +517,6 @@ function closeTab(tabId, editor) {
     if (!confirm('Are you sure you want to close this tab?')) {
         return;
     }
-
 
     // First, remove from localStorage before any other operations
     localStorage.removeItem(`${localStoragePrefix}${tabId}`);
@@ -556,9 +563,10 @@ function restoreTabs(editor) {
     if (savedState) {
         const { tabs, activeTab: savedActiveTab } = JSON.parse(savedState);
         
-        // Restore all tabs with their content
+        // Restore all tabs
         tabs.forEach(tab => {
-            createNewTab(editor, tab.name, tab.id, tab.content);
+            // Only pass name and id, content will be retrieved from localStorage
+            createNewTab(editor, tab.name, tab.id);
         });
 
         // Switch to the previously active tab
@@ -574,6 +582,7 @@ function restoreTabs(editor) {
 
 // Initialize editor
 DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(editor => {
+    
     document.querySelector('#editor-toolbar').appendChild(editor.ui.view.toolbar.element);
     document.querySelector('#editor-menu-bar').appendChild(editor.ui.view.menuBarView.element);
 
