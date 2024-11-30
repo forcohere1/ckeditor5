@@ -633,35 +633,44 @@ DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(edi
 
     document.getElementById('add-tab').addEventListener('click', () => createNewTab(editor));
 
-    editorTabs.addEventListener('click', event => {
-        const tab = event.target.closest('.tab');
-        if (tab) {
-            const tabId = tab.getAttribute('data-tab-id');
-            const tabNameElement = tab.querySelector('.tab-name');
-
-            // Handle close tab
-            if (event.target.classList.contains('close-tab')) {
-                closeTab(tabId, editor);
-                return;
-            }
-
-            // Handle tab switching
-            if (event.target === tabNameElement) {
-                // Double-click to rename
-                tabNameElement.contentEditable = 'true';
-                tabNameElement.focus();
-                
-                // Select all text in the tab name
-                const range = document.createRange();
-                range.selectNodeContents(tabNameElement);
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(range);
-            } else {
-                switchToTab(tabId, editor);
-            }
-        }
-    });
+	editorTabs.addEventListener('click', event => {
+		const tab = event.target.closest('.tab');
+		if (tab) {
+			const tabId = tab.getAttribute('data-tab-id');
+			const tabNameElement = tab.querySelector('.tab-name');
+	
+			// Handle close tab
+			if (event.target.classList.contains('close-tab')) {
+				closeTab(tabId, editor);
+				return;
+			}
+	
+			// Handle tab switching
+			if (event.target === tabNameElement) {
+				// Double-click to rename
+				if (event.detail === 2) {
+					tabNameElement.contentEditable = 'true';
+					tabNameElement.focus();
+					
+					// Store original name for potential revert
+					tabNameElement.setAttribute('data-original-name', tabNameElement.textContent.trim());
+	
+					// Select all text in the tab name
+					const range = document.createRange();
+					range.selectNodeContents(tabNameElement);
+					const selection = window.getSelection();
+					selection.removeAllRanges();
+					selection.addRange(range);
+				} else {
+					// Single click just switches tab
+					switchToTab(tabId, editor);
+				}
+			} else {
+				// Click on other parts of the tab switches to that tab
+				switchToTab(tabId, editor);
+			}
+		}
+	});
 
     // Add event listeners for tab name editing
     editorTabs.addEventListener('blur', event => {
