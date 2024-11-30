@@ -296,3 +296,9 @@
 	cursor: pointer;
 	font-size: 14px;
 }
+
+#add-tab.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}

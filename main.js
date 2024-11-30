@@ -389,6 +389,7 @@ const localStoragePrefix = 'editorTab_';
 const tabsStateKey = 'editorTabsState';
 const editorTabs = document.getElementById('editor-tabs');
 let usedTabNumbers = new Set();
+const MAX_TABS = 5;
 
 function cleanupOrphanedTabs() {
     const state = JSON.parse(localStorage.getItem(tabsStateKey) || '{"tabs":[]}');
@@ -412,7 +413,6 @@ function saveTabsState() {
         return {
             id: tabId,
             name: tab.querySelector('.tab-name').textContent
-            // Removed content field to reduce redundancy
         };
     });
     
@@ -424,7 +424,56 @@ function saveTabsState() {
     localStorage.setItem(tabsStateKey, JSON.stringify(state));
 }
 
+function validateTabName(newName, currentTabId) {
+    // Trim the name and check if it's empty
+    newName = newName.trim();
+    
+    // If name is empty or contains only whitespace, 
+    // revert to default naming based on tab number
+    if (newName === '') {
+        const tabNumber = currentTabId.split('_')[1];
+        return `Tab ${tabNumber}`;
+    }
+
+    // Check for duplicate names (excluding the current tab)
+    const existingTabs = document.querySelectorAll('.tab .tab-name');
+    const isDuplicate = Array.from(existingTabs)
+        .some(tab => 
+            tab.textContent.trim() === newName && 
+            tab.closest('.tab').getAttribute('data-tab-id') !== currentTabId
+        );
+
+    if (isDuplicate) {
+        // If duplicate, revert to default naming
+        const tabNumber = currentTabId.split('_')[1];
+        return `Tab ${tabNumber}`;
+    }
+
+    return newName;
+}
+
+// New function to update the state of the add tab button
+function updateAddTabButton() {
+    const addTabButton = document.getElementById('add-tab');
+    const currentTabCount = document.querySelectorAll('.tab').length;
+
+    if (currentTabCount >= MAX_TABS) {
+        addTabButton.disabled = true;
+        addTabButton.classList.add('disabled');
+    } else {
+        addTabButton.disabled = false;
+        addTabButton.classList.remove('disabled');
+    }
+}
+
 function createNewTab(editor, name = null, tabId = null, content = null) {
+    // Check if max tabs limit is reached
+    const currentTabCount = document.querySelectorAll('.tab').length;
+    if (currentTabCount >= MAX_TABS) {
+        alert('Maximum number of tabs (5) has been reached. Close a tab to create a new one.');
+        return;
+    }
+
     if (!tabId) {
         let tabNumber = 1;
         while (usedTabNumbers.has(tabNumber)) {
@@ -442,12 +491,14 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
         return;
     }
 
+    const defaultName = name || `Tab ${tabId.split('_')[1]}`;
+
     const newTab = document.createElement('div');
     newTab.className = 'tab';
     newTab.setAttribute('data-tab-id', tabId);
 
     newTab.innerHTML = `
-        <span class="tab-name">${name || `Tab ${tabId.split('_')[1]}`}</span>
+        <span class="tab-name" contenteditable="false">${defaultName}</span>
         <button class="close-tab">x</button>
     `;
 
@@ -456,7 +507,6 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
     // Default table content
     const defaultContent = `<table style="font-size: 12px;" class="ck-table-resized"><colgroup><col style="width:5.69%;"><col style="width:5.69%;"><col style="width:23.53%;"><col style="width:53.71%;"><col style="width:5.69%;"><col style="width:5.69%;"></colgroup><thead><tr><th>Sr.</th><th>V.T</th><th>Granth</th><th>ShastraPath</th><th>Pub. Rem</th><th>In. Rem</th></tr></thead><tbody><tr><td>1</td><td>स्व.</td><td>&#8203;</td><td>&#8203;</td><td>&#8203;</td><td>&#8203;</td></tr></tbody></table>`;
 
-    // Initialize content
     if (content !== null) {
         localStorage.setItem(`${localStoragePrefix}${tabId}`, content);
     } else if (!localStorage.getItem(`${localStoragePrefix}${tabId}`)) {
@@ -465,6 +515,9 @@ function createNewTab(editor, name = null, tabId = null, content = null) {
 
     switchToTab(tabId, editor);
     saveTabsState();
+
+    // Check and update add tab button state
+    updateAddTabButton();
 }
 
 function switchToTab(tabId, editor) {
@@ -541,6 +594,9 @@ function closeTab(tabId, editor) {
             editor.setData('');
         }
     }
+
+    // Update add tab button state
+    updateAddTabButton();
 }
 
 function restoreTabs(editor) {
@@ -569,7 +625,7 @@ function restoreTabs(editor) {
     }
 }
 
-// Initialize editor
+// Modify the initialization code to add event listeners for tab renaming
 DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(editor => {
     
     document.querySelector('#editor-toolbar').appendChild(editor.ui.view.toolbar.element);
@@ -581,10 +637,58 @@ DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(edi
         const tab = event.target.closest('.tab');
         if (tab) {
             const tabId = tab.getAttribute('data-tab-id');
+            const tabNameElement = tab.querySelector('.tab-name');
+
+            // Handle close tab
             if (event.target.classList.contains('close-tab')) {
                 closeTab(tabId, editor);
+                return;
+            }
+
+            // Handle tab switching
+            if (event.target === tabNameElement) {
+                // Double-click to rename
+                tabNameElement.contentEditable = 'true';
+                tabNameElement.focus();
+                
+                // Select all text in the tab name
+                const range = document.createRange();
+                range.selectNodeContents(tabNameElement);
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(range);
             } else {
                 switchToTab(tabId, editor);
+            }
+        }
+    });
+
+    // Add event listeners for tab name editing
+    editorTabs.addEventListener('blur', event => {
+        if (event.target.classList.contains('tab-name') && event.target.isContentEditable) {
+            const tab = event.target.closest('.tab');
+            const tabId = tab.getAttribute('data-tab-id');
+            
+            // Validate and potentially correct the name
+            const newName = validateTabName(event.target.textContent, tabId);
+            
+            // Always set the corrected name
+            event.target.textContent = newName;
+            event.target.contentEditable = 'false';
+            saveTabsState();
+        }
+    }, true);
+
+    editorTabs.addEventListener('keydown', event => {
+        if (event.target.classList.contains('tab-name') && event.target.isContentEditable) {
+            // Save on Enter, cancel on Escape
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                event.target.blur(); // This will trigger the blur event handler
+            } else if (event.key === 'Escape') {
+                const originalName = event.target.getAttribute('data-original-name') || event.target.textContent.trim();
+                event.target.textContent = originalName;
+                event.target.contentEditable = 'false';
             }
         }
     });
@@ -597,7 +701,7 @@ DecoupledEditor.create(document.querySelector('#editor'), editorConfig).then(edi
             saveTabsState();
         }
     });
-
+	updateAddTabButton();
     cleanupOrphanedTabs();
     restoreTabs(editor);
 
