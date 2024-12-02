@@ -526,15 +526,19 @@ function switchToTab(tabId, editor) {
         localStorage.setItem(`${localStoragePrefix}${activeTab}`, currentContent);
     }
 
-    const tabContent = localStorage.getItem(`${localStoragePrefix}${tabId}`);
+    let tabContent = localStorage.getItem(`${localStoragePrefix}${tabId}`);
+    // Replace <br> with nothing
+    if (tabContent) {
+        tabContent = tabContent.replace(/<br>/g, '');
+    }
     editor.setData(tabContent || '');
-    
+
     activeTab = tabId;
 
     document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.remove('active-tab');
     });
-    
+
     const activeTabElement = document.querySelector(`[data-tab-id="${tabId}"]`);
     if (activeTabElement) {
         activeTabElement.classList.add('active-tab');
